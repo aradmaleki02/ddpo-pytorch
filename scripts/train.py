@@ -19,7 +19,7 @@ from ddpo_pytorch.stat_tracking import PerPromptStatTracker
 from ddpo_pytorch.diffusers_patch.pipeline_with_logprob import pipeline_with_logprob
 from ddpo_pytorch.diffusers_patch.ddim_with_logprob import ddim_step_with_logprob
 import torch
-import wandb
+# import wandb
 from functools import partial
 import tqdm
 import tempfile
@@ -68,7 +68,7 @@ def main(_):
     )
 
     accelerator = Accelerator(
-        log_with="wandb",
+        # log_with="wandb",
         mixed_precision=config.mixed_precision,
         project_config=accelerator_config,
         # we always accumulate gradients across timesteps; we want config.train.gradient_accumulation_steps to be the
@@ -78,11 +78,12 @@ def main(_):
         * num_train_timesteps,
     )
     if accelerator.is_main_process:
-        accelerator.init_trackers(
-            project_name="ddpo-pytorch",
-            config=config.to_dict(),
-            init_kwargs={"wandb": {"name": config.run_name}},
-        )
+        # accelerator.init_trackers(
+        #     project_name="ddpo-pytorch",
+        #     config=config.to_dict(),
+        #     init_kwargs={"wandb": {"name": config.run_name}},
+        # )
+        pass
     logger.info(f"\n{config}")
 
     # set seed (device_specific is very important to get different prompts on different devices)
@@ -387,6 +388,28 @@ def main(_):
         samples = {k: torch.cat([s[k] for s in samples]) for k in samples[0].keys()}
 
         # this is a hack to force wandb to log the images as JPEGs instead of PNGs
+        # with tempfile.TemporaryDirectory() as tmpdir:
+        #     for i, image in enumerate(images):
+        #         pil = Image.fromarray(
+        #             (image.cpu().numpy().transpose(1, 2, 0) * 255).astype(np.uint8)
+        #         )
+        #         pil = pil.resize((256, 256))
+        #         pil.save(os.path.join(tmpdir, f"{i}.jpg"))
+        #     accelerator.log(
+        #         {
+        #             "images": [
+        #                 wandb.Image(
+        #                     os.path.join(tmpdir, f"{i}.jpg"),
+        #                     caption=f"{prompt:.25} | {reward:.2f}",
+        #                 )
+        #                 for i, (prompt, reward) in enumerate(
+        #                     zip(prompts, rewards)
+        #                 )  # only log rewards from process 0
+        #             ],
+        #         },
+        #         step=global_step,
+        #     )
+        # Save images as JPEGs in a temporary directory without logging to WandB
         with tempfile.TemporaryDirectory() as tmpdir:
             for i, image in enumerate(images):
                 pil = Image.fromarray(
@@ -394,20 +417,10 @@ def main(_):
                 )
                 pil = pil.resize((256, 256))
                 pil.save(os.path.join(tmpdir, f"{i}.jpg"))
-            accelerator.log(
-                {
-                    "images": [
-                        wandb.Image(
-                            os.path.join(tmpdir, f"{i}.jpg"),
-                            caption=f"{prompt:.25} | {reward:.2f}",
-                        )
-                        for i, (prompt, reward) in enumerate(
-                            zip(prompts, rewards)
-                        )  # only log rewards from process 0
-                    ],
-                },
-                step=global_step,
-            )
+
+            # Optionally, you can print the paths or save the paths for further usage
+            image_paths = [os.path.join(tmpdir, f"{i}.jpg") for i in range(len(images))]
+            print(f"Images saved in: {tmpdir}")  # Debug/logging information if needed
 
         # gather rewards across processes
         rewards = accelerator.gather(samples["rewards"]).cpu().numpy()
