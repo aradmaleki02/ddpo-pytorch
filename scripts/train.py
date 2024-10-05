@@ -436,7 +436,7 @@ def main(_):
         #     step=global_step,
         # )
         # Example of logging to a file or console
-        print(f"Epoch {epoch}, Reward: {rewards}, Step: {global_step}")
+        print(f"Epoch {epoch}, Reward: {rewards}, Rewards Mean: {rewards.mean()}, std: {rewards.std()}, Step: {global_step}")
 
         # per-prompt mean/std tracking
         if config.per_prompt_stat_tracking:
@@ -600,7 +600,8 @@ def main(_):
                         info = {k: torch.mean(torch.stack(v)) for k, v in info.items()}
                         info = accelerator.reduce(info, reduction="mean")
                         info.update({"epoch": epoch, "inner_epoch": inner_epoch})
-                        accelerator.log(info, step=global_step)
+                        # accelerator.log(info, step=global_step)
+                        print(f"Step: {global_step}, Info: {info}")
                         global_step += 1
                         info = defaultdict(list)
 
