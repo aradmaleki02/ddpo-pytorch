@@ -426,15 +426,17 @@ def main(_):
         rewards = accelerator.gather(samples["rewards"]).cpu().numpy()
 
         # log rewards and images
-        accelerator.log(
-            {
-                "reward": rewards,
-                "epoch": epoch,
-                "reward_mean": rewards.mean(),
-                "reward_std": rewards.std(),
-            },
-            step=global_step,
-        )
+        # accelerator.log(
+        #     {
+        #         "reward": rewards,
+        #         "epoch": epoch,
+        #         "reward_mean": rewards.mean(),
+        #         "reward_std": rewards.std(),
+        #     },
+        #     step=global_step,
+        # )
+        # Example of logging to a file or console
+        print(f"Epoch {epoch}, Reward: {rewards}, Step: {global_step}")
 
         # per-prompt mean/std tracking
         if config.per_prompt_stat_tracking:
